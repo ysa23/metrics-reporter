@@ -18,7 +18,55 @@ describe('Space', function() {
       }
     });
 
-    context('called on an asynchronous functions', function() {
+    context('called on a async function', () => {
+      it('should return a Promise', function() {
+        const reports = [];
+        const reporter = new InMemoryReporter(reports);
+        const metrics = new Metrics([ reporter ]);
+        const func = getAsyncFunction(1000);
+
+        const result =  metrics.space('SYW.Adder').meter(func);
+
+        assert.equal(result instanceof Promise, true);
+      });
+
+      it('upon promise resolve, should create a report where the value is the execution time of the original function it receives as argument', async function() {
+        const reports = [];
+        const reporter = new InMemoryReporter(reports);
+        const metrics = new Metrics([ reporter ]);
+        const func = getAsyncFunction(1000);
+
+        await metrics.space('SYW.Adder').meter(func);
+
+        const report = reports[reports.length-1];
+        const result = report.value;
+
+        assert.ok(result >= 1000 && result < 1020, 'duration was ' + result.toString());
+      });
+
+      it('upon promise error, should create a report where the value is the execution time of the original function it receives as argument', async function() {
+        const reports = [];
+        const reporter = new InMemoryReporter(reports);
+        const metrics = new Metrics([ reporter ]);
+        const func = getAsyncErrorFunction(1000);
+
+        try {
+          await metrics.space('SYW.Adder').meter(func);
+        }
+        catch(err) {
+        }
+
+        assert.equal(reports.length, 1);
+
+        const report = reports[reports.length-1];
+        const result = report.value;
+
+        assert.ok(result >= 1000 && result < 1020, 'duration was ' + result.toString());
+      });
+
+    });
+
+    context('called on a callback function', function() {
       it('should return a function', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
@@ -272,6 +320,29 @@ function getCallbackFunction(duration) {
       callback(null, result);
     }, duration);
   };
+}
+
+function getPromiseFunction(delay) {
+  return () => {
+    return new Promise(function(resolve) {
+      setTimeout(resolve, delay);
+    });
+  };
+}
+
+async function getAsyncErrorFunction(delay) {
+  return new Promise(function(resolve, reject) {
+    setTimeout(() => {
+      console.log('timeout completed');
+      reject(new Error('ERROR'));
+    }, delay);
+  });
+}
+
+async function getAsyncFunction(delay) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, delay);
+  });
 }
 
 function getSyncFunc(duration) {

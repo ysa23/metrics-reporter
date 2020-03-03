@@ -21,8 +21,17 @@ module.exports = function Space(key, reporters, errback) {
   };
 
   this.meter = function(func) {
-    if(typeof func !== 'function') {
+    if(typeof func !== 'function' && !isPromise(func)) {
       throw new Error('must pass a function as argument');
+    }
+
+    if (isPromise(func)) {
+      const start = new Date();
+      return func
+          .finally(() => {
+            const finish = new Date();
+            report(key, start, finish);
+          });
     }
 
     return function() {
@@ -60,4 +69,8 @@ module.exports = function Space(key, reporters, errback) {
 
 function isAsyncFunc(args) {
   return typeof args[args.length - 1] === 'function';
+}
+
+function isPromise(func) {
+  return func instanceof Promise;
 }
