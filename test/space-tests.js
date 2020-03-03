@@ -18,12 +18,12 @@ describe('Space', function() {
       }
     });
 
-    context('called on an asynchronous function', function() {
+    context('called on an asynchronous functions', function() {
       it('should return a function', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
         var metrics = new Metrics([ reporter ]);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
 
         var result =  metrics.space('SYW.Adder').meter(func);
 
@@ -34,7 +34,7 @@ describe('Space', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
         var metrics = new Metrics([ reporter ]);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function(err, result) {
@@ -50,7 +50,7 @@ describe('Space', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
         var metrics = new Metrics([ reporter ]);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function(err, result) {
@@ -66,7 +66,7 @@ describe('Space', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
         var metrics = new Metrics([ reporter ]);
-        var func = sinon.spy(getAsyncFunc(1000));
+        var func = sinon.spy(getCallbackFunction(1000));
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function(err, result) {
@@ -82,7 +82,7 @@ describe('Space', function() {
         var reports = [];
         var reporter = new InMemoryReporter(reports);
         var metrics = new Metrics([ reporter ]);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function(err, result) {
@@ -95,7 +95,7 @@ describe('Space', function() {
       it('should not throw an error when a reporter throws an error', function(done) {
         var reporter = new FailingReporter();
         var metrics = new Metrics([ reporter ]);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function(err, result) {
@@ -109,7 +109,7 @@ describe('Space', function() {
         var reporter = new FailingReporter();
         var errback = sinon.spy();
         var metrics = new Metrics([ reporter ], errback);
-        var func = getAsyncFunc(1000);
+        var func = getCallbackFunction(1000);
         var wrappedFunc = metrics.space('SYW.Adder').meter(func);
 
         wrappedFunc(1, 1, function() {
@@ -265,7 +265,7 @@ describe('Space', function() {
     });
 });
 
-function getAsyncFunc(duration) {
+function getCallbackFunction(duration) {
   return function(a, b, callback) {
     setTimeout(function() {
       var result = a+b;
