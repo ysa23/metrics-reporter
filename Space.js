@@ -34,11 +34,24 @@ module.exports = function Space(key, reporters, errback) {
           });
     }
 
+    if (isAsyncFunc(func)) {
+      return async () => {
+        const start = new Date();
+        try {
+          await func();
+        }
+        finally {
+          const finish = new Date();
+          report(key, start, finish);
+        }
+      }
+    }
+
     return function() {
       var args = Array.prototype.slice.call(arguments);
       var start = new Date();
 
-      if(isAsyncFunc(args)) {
+      if(isCallbackFunc(args)) {
         var callback = args.pop();
         args.push(function() {
           var callbackArgs = Array.prototype.slice.call(arguments);
@@ -67,10 +80,14 @@ module.exports = function Space(key, reporters, errback) {
   }
 };
 
-function isAsyncFunc(args) {
+function isCallbackFunc(args) {
   return typeof args[args.length - 1] === 'function';
 }
 
 function isPromise(func) {
   return func instanceof Promise;
+}
+
+function isAsyncFunc(func) {
+  return func.constructor.name === "AsyncFunction";
 }
