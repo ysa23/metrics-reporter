@@ -302,3 +302,10 @@ To run tests, in command line run `npm test`
 
 [npm-image]: https://img.shields.io/npm/v/metrics-reporter.svg?style=rounded-square
 [npm-url]: https://npmjs.org/package/metrics-reporter
+
+<div style="text-align: right">
+  <span style="width:97px;font-size:10px;display:inline-block;text-align: left">Supported By</span>
+  <br/>
+  <a href="https://jb.gg/OpenSourceSupport"><img style="width:100px" src="https://resources.jetbrains.com/storage/products/company/brand/logos/WebStorm.png"/></a>
+</div>
+
