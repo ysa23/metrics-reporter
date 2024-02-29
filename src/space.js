@@ -47,7 +47,7 @@ function Space({
       return async () => {
         const start = new Date();
         try {
-          await func();
+          return await func();
         } finally {
           const finish = new Date();
           report(key, start, finish);
