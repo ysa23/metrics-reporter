@@ -66,6 +66,22 @@ describe('Space', () => {
         expect(result.constructor.name).toEqual('AsyncFunction');
       });
 
+      it('should return the value from the async function execution', async () => {
+        const reports = [];
+        const reporter = new InMemoryReporter({ buffer: reports });
+        const metrics = new Metrics({ reporters: [reporter] });
+        const func = async () => {
+          await getPromise(1000);
+          return 42;
+        };
+
+        const wrapper = metrics.space('space.meter').meter(func);
+
+        const result = await wrapper();
+
+        expect(result).toEqual(42);
+      });
+
       it('upon await successful execution, should create a report where the value is the execution time of the original function it receives as argument', async () => {
         const reports = [];
         const reporter = new InMemoryReporter({ buffer: reports });
