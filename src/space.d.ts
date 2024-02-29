@@ -14,7 +14,7 @@ export declare class Space {
 
   value(val: number) : void;
   increment(val?: number): void;
-  meter: <T>(func: () => T) => T;
+  meter: <T>(func: () => T) => (T | (() => T));
 
   space: (nextKey: string, nextTags?: Tags) => Space;
 }
