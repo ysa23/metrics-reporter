@@ -4,7 +4,6 @@
   "main": "./src/index.js",
   "license": "MIT",
   "engines" : {
-    "npm" : ">=10.0.0",
     "node" : ">=22.0.0"
   },
   "keywords": [
