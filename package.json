@@ -3,6 +3,10 @@
   "description": "Metrics reporting framework for reporting data point information to aggregators (like Graphite)",
   "main": "./src/index.js",
   "license": "MIT",
+  "engines" : {
+    "npm" : ">=10.0.0",
+    "node" : ">=22.0.0"
+  },
   "keywords": [
     "metrics",
     "graphite",
