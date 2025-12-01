@@ -145,6 +145,15 @@ metrics
     .increment(); 
     // will increment 'http.requests' with 'verb:GET,path:users' tags
 ```
+Use `tags` function to create a space with the same key and additional tags:
+```js
+metrics
+    .space('http', { verb: 'GET' })
+    .tags({ path: 'users' })
+    .increment(); 
+    // will increment 'http' with 'verb:GET,path:users' tags
+```
+
 ##### Note
 When the same tag is specified when creating nested spaces, the last value will be reported
 

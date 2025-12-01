@@ -85,6 +85,13 @@ function Space({
     });
   };
 
+  this.tags = nextTags => {
+    const newTags = { ...tags, ...nextTags };
+    return new Space({
+      key, tags: newTags, reporters, errback,
+    });
+  };
+
   function report(reportKey, start, finish) {
     const duration = finish.getTime() - start.getTime();
     forEachReporter(reporter => reporter.report(reportKey, duration, tags));

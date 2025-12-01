@@ -388,6 +388,52 @@ describe('Space', () => {
     });
   });
 
+  describe('tags', () => {
+    it('should create a report with the same key with a combination of all tags', () => {
+      const reports = [];
+      const reporter = new InMemoryReporter({ buffer: reports });
+      const metrics = new Metrics({ reporters: [reporter] });
+      const func = getSyncFunc(500);
+      const wrappedFunc = metrics.space('space').tags({ tag1: 'value1', tag2: 'value2' }).tags({ tag3: 'value3' })
+        .meter(func);
+
+      wrappedFunc(1, 1);
+
+      expect(reports).toEqual([
+        expect.objectContaining({
+          key: 'space',
+          tags: {
+            tag1: 'value1',
+            tag2: 'value2',
+            tag3: 'value3',
+          },
+        }),
+      ]);
+    });
+
+    it('should override tag with the last value when same tag appears in different tags invocation', () => {
+      const reports = [];
+      const reporter = new InMemoryReporter({ buffer: reports });
+      const metrics = new Metrics({ reporters: [reporter] });
+      const func = getSyncFunc(500);
+      const wrappedFunc = metrics.space('space').tags({ tag1: 'value1', tag2: 'value2' }).tags({ tag3: 'value3' }).tags({ tag2: 'override-value' })
+        .meter(func);
+
+      wrappedFunc(1, 1);
+
+      expect(reports).toEqual([
+        expect.objectContaining({
+          key: 'space',
+          tags: {
+            tag1: 'value1',
+            tag2: 'override-value',
+            tag3: 'value3',
+          },
+        }),
+      ]);
+    });
+  });
+
   describe('increment', () => {
     it('when value is not specify, increment by one', () => {
       const reports = [];
