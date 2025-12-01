@@ -17,4 +17,5 @@ export declare class Space {
   meter: <T, Args extends any[]>(func: (...args:Args) => T) => (...args: Args) => T;
 
   space: (nextKey: string, nextTags?: Tags) => Space;
+  tags: (nextTags: Tags) => Space;
 }
