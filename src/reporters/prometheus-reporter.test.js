@@ -16,7 +16,7 @@ describe('PrometheusReporter', () => {
         prefix: 'test_',
         softLimit: 1000,
         hardLimit: 2000,
-        warnAt: 800
+        warnAt: 800,
       });
       expect(reporter).toBeDefined();
     });
@@ -37,9 +37,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP test_counter Counter metric\n' +
-        '# TYPE test_counter counter\n' +
-        'test_counter_total 1\n'
+        '# HELP test_counter Counter metric\n'
+        + '# TYPE test_counter counter\n'
+        + 'test_counter_total 1\n',
       );
     });
 
@@ -50,9 +50,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP test_counter Counter metric\n' +
-        '# TYPE test_counter counter\n' +
-        'test_counter_total 8\n'
+        '# HELP test_counter Counter metric\n'
+        + '# TYPE test_counter counter\n'
+        + 'test_counter_total 8\n',
       );
     });
 
@@ -62,9 +62,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP test_counter Counter metric\n' +
-        '# TYPE test_counter counter\n' +
-        'test_counter_total{method="GET",status="200"} 1\n'
+        '# HELP test_counter Counter metric\n'
+        + '# TYPE test_counter counter\n'
+        + 'test_counter_total{method="GET",status="200"} 1\n',
       );
     });
 
@@ -75,10 +75,10 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP requests Counter metric\n' +
-        '# TYPE requests counter\n' +
-        'requests_total{method="GET"} 1\n' +
-        'requests_total{method="POST"} 2\n'
+        '# HELP requests Counter metric\n'
+        + '# TYPE requests counter\n'
+        + 'requests_total{method="GET"} 1\n'
+        + 'requests_total{method="POST"} 2\n',
       );
     });
 
@@ -88,9 +88,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP test_counter Counter metric\n' +
-        '# TYPE test_counter counter\n' +
-        'test_counter_total 1\n'
+        '# HELP test_counter Counter metric\n'
+        + '# TYPE test_counter counter\n'
+        + 'test_counter_total 1\n',
       );
     });
 
@@ -124,9 +124,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP memory_usage Gauge metric\n' +
-        '# TYPE memory_usage gauge\n' +
-        'memory_usage 1024\n'
+        '# HELP memory_usage Gauge metric\n'
+        + '# TYPE memory_usage gauge\n'
+        + 'memory_usage 1024\n',
       );
     });
 
@@ -137,9 +137,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP memory_usage Gauge metric\n' +
-        '# TYPE memory_usage gauge\n' +
-        'memory_usage 2048\n'
+        '# HELP memory_usage Gauge metric\n'
+        + '# TYPE memory_usage gauge\n'
+        + 'memory_usage 2048\n',
       );
     });
 
@@ -149,9 +149,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP temperature Gauge metric\n' +
-        '# TYPE temperature gauge\n' +
-        'temperature{location="server_room"} 23.5\n'
+        '# HELP temperature Gauge metric\n'
+        + '# TYPE temperature gauge\n'
+        + 'temperature{location="server_room"} 23.5\n',
       );
     });
   });
@@ -163,63 +163,63 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP response_time Histogram metric\n' +
-        '# TYPE response_time histogram\n' +
-        'response_time_bucket{le="10"} 0\n' +
-        'response_time_bucket{le="50"} 0\n' +
-        'response_time_bucket{le="100"} 0\n' +
-        'response_time_bucket{le="250"} 1\n' +
-        'response_time_bucket{le="500"} 1\n' +
-        'response_time_bucket{le="1000"} 1\n' +
-        'response_time_bucket{le="2500"} 1\n' +
-        'response_time_bucket{le="5000"} 1\n' +
-        'response_time_bucket{le="10000"} 1\n' +
-        'response_time_bucket{le="+Inf"} 1\n' +
-        'response_time_sum 150\n' +
-        'response_time_count 1\n'
+        '# HELP response_time Histogram metric\n'
+        + '# TYPE response_time histogram\n'
+        + 'response_time_bucket{le="10"} 0\n'
+        + 'response_time_bucket{le="50"} 0\n'
+        + 'response_time_bucket{le="100"} 0\n'
+        + 'response_time_bucket{le="250"} 1\n'
+        + 'response_time_bucket{le="500"} 1\n'
+        + 'response_time_bucket{le="1000"} 1\n'
+        + 'response_time_bucket{le="2500"} 1\n'
+        + 'response_time_bucket{le="5000"} 1\n'
+        + 'response_time_bucket{le="10000"} 1\n'
+        + 'response_time_bucket{le="+Inf"} 1\n'
+        + 'response_time_sum 150\n'
+        + 'response_time_count 1\n',
       );
     });
 
     it('should accumulate histogram observations correctly', () => {
       const reporter = new PrometheusReporter();
-      reporter.report('response_time', 50);  // Goes in 50, 100, etc buckets
+      reporter.report('response_time', 50); // Goes in 50, 100, etc buckets
       reporter.report('response_time', 150); // Goes in 250, 500, etc buckets
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP response_time Histogram metric\n' +
-        '# TYPE response_time histogram\n' +
-        'response_time_bucket{le="10"} 0\n' +
-        'response_time_bucket{le="50"} 1\n' +
-        'response_time_bucket{le="100"} 1\n' +
-        'response_time_bucket{le="250"} 2\n' +
-        'response_time_bucket{le="500"} 2\n' +
-        'response_time_bucket{le="1000"} 2\n' +
-        'response_time_bucket{le="2500"} 2\n' +
-        'response_time_bucket{le="5000"} 2\n' +
-        'response_time_bucket{le="10000"} 2\n' +
-        'response_time_bucket{le="+Inf"} 2\n' +
-        'response_time_sum 200\n' +
-        'response_time_count 2\n'
+        '# HELP response_time Histogram metric\n'
+        + '# TYPE response_time histogram\n'
+        + 'response_time_bucket{le="10"} 0\n'
+        + 'response_time_bucket{le="50"} 1\n'
+        + 'response_time_bucket{le="100"} 1\n'
+        + 'response_time_bucket{le="250"} 2\n'
+        + 'response_time_bucket{le="500"} 2\n'
+        + 'response_time_bucket{le="1000"} 2\n'
+        + 'response_time_bucket{le="2500"} 2\n'
+        + 'response_time_bucket{le="5000"} 2\n'
+        + 'response_time_bucket{le="10000"} 2\n'
+        + 'response_time_bucket{le="+Inf"} 2\n'
+        + 'response_time_sum 200\n'
+        + 'response_time_count 2\n',
       );
     });
 
     it('should handle histogram with custom buckets', () => {
       const reporter = new PrometheusReporter({
-        buckets: [1, 5, 10]
+        buckets: [1, 5, 10],
       });
       reporter.report('custom_metric', 3);
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP custom_metric Histogram metric\n' +
-        '# TYPE custom_metric histogram\n' +
-        'custom_metric_bucket{le="1"} 0\n' +
-        'custom_metric_bucket{le="5"} 1\n' +
-        'custom_metric_bucket{le="10"} 1\n' +
-        'custom_metric_bucket{le="+Inf"} 1\n' +
-        'custom_metric_sum 3\n' +
-        'custom_metric_count 1\n'
+        '# HELP custom_metric Histogram metric\n'
+        + '# TYPE custom_metric histogram\n'
+        + 'custom_metric_bucket{le="1"} 0\n'
+        + 'custom_metric_bucket{le="5"} 1\n'
+        + 'custom_metric_bucket{le="10"} 1\n'
+        + 'custom_metric_bucket{le="+Inf"} 1\n'
+        + 'custom_metric_sum 3\n'
+        + 'custom_metric_count 1\n',
       );
     });
   });
@@ -235,16 +235,15 @@ describe('PrometheusReporter', () => {
 
       // First scrape should return all metrics
       const output1 = reporter.getMetrics();
-      const expectedOutput1 =
-        '# HELP metric1 Counter metric\n' +
-        '# TYPE metric1 counter\n' +
-        'metric1_total 1\n' +
-        '# HELP metric2 Counter metric\n' +
-        '# TYPE metric2 counter\n' +
-        'metric2_total 1\n' +
-        '# HELP metric3 Counter metric\n' +
-        '# TYPE metric3 counter\n' +
-        'metric3_total 1\n';
+      const expectedOutput1 = '# HELP metric1 Counter metric\n'
+        + '# TYPE metric1 counter\n'
+        + 'metric1_total 1\n'
+        + '# HELP metric2 Counter metric\n'
+        + '# TYPE metric2 counter\n'
+        + 'metric2_total 1\n'
+        + '# HELP metric3 Counter metric\n'
+        + '# TYPE metric3 counter\n'
+        + 'metric3_total 1\n';
 
       expect(output1).toBe(expectedOutput1);
 
@@ -263,13 +262,12 @@ describe('PrometheusReporter', () => {
       const output2 = reporter.getMetrics();
 
       // Should be the same both times
-      const expectedOutput =
-        '# HELP metric1 Counter metric\n' +
-        '# TYPE metric1 counter\n' +
-        'metric1_total 1\n' +
-        '# HELP metric2 Counter metric\n' +
-        '# TYPE metric2 counter\n' +
-        'metric2_total 1\n';
+      const expectedOutput = '# HELP metric1 Counter metric\n'
+        + '# TYPE metric1 counter\n'
+        + 'metric1_total 1\n'
+        + '# HELP metric2 Counter metric\n'
+        + '# TYPE metric2 counter\n'
+        + 'metric2_total 1\n';
 
       expect(output1).toBe(expectedOutput);
       expect(output2).toBe(expectedOutput);
@@ -314,9 +312,9 @@ describe('PrometheusReporter', () => {
       // Should only have the last metric
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP metric3 Counter metric\n' +
-        '# TYPE metric3 counter\n' +
-        'metric3_total 1\n'
+        '# HELP metric3 Counter metric\n'
+        + '# TYPE metric3 counter\n'
+        + 'metric3_total 1\n',
       );
     });
 
@@ -332,12 +330,12 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP metric1 Counter metric\n' +
-        '# TYPE metric1 counter\n' +
-        'metric1_total 6\n' +
-        '# HELP metric2 Counter metric\n' +
-        '# TYPE metric2 counter\n' +
-        'metric2_total 1\n'
+        '# HELP metric1 Counter metric\n'
+        + '# TYPE metric1 counter\n'
+        + 'metric1_total 6\n'
+        + '# HELP metric2 Counter metric\n'
+        + '# TYPE metric2 counter\n'
+        + 'metric2_total 1\n',
       );
     });
 
@@ -372,9 +370,9 @@ describe('PrometheusReporter', () => {
 
       const output = reporter.getMetrics();
       expect(output).toBe(
-        '# HELP myapp_requests Counter metric\n' +
-        '# TYPE myapp_requests counter\n' +
-        'myapp_requests_total 1\n'
+        '# HELP myapp_requests Counter metric\n'
+        + '# TYPE myapp_requests counter\n'
+        + 'myapp_requests_total 1\n',
       );
     });
   });
@@ -387,27 +385,26 @@ describe('PrometheusReporter', () => {
       reporter.report('response_time', 150);
 
       const output = reporter.getMetrics();
-      const expectedOutput =
-        '# HELP http_requests Counter metric\n' +
-        '# TYPE http_requests counter\n' +
-        'http_requests_total 10\n' +
-        '# HELP memory_usage Gauge metric\n' +
-        '# TYPE memory_usage gauge\n' +
-        'memory_usage 1024\n' +
-        '# HELP response_time Histogram metric\n' +
-        '# TYPE response_time histogram\n' +
-        'response_time_bucket{le="10"} 0\n' +
-        'response_time_bucket{le="50"} 0\n' +
-        'response_time_bucket{le="100"} 0\n' +
-        'response_time_bucket{le="250"} 1\n' +
-        'response_time_bucket{le="500"} 1\n' +
-        'response_time_bucket{le="1000"} 1\n' +
-        'response_time_bucket{le="2500"} 1\n' +
-        'response_time_bucket{le="5000"} 1\n' +
-        'response_time_bucket{le="10000"} 1\n' +
-        'response_time_bucket{le="+Inf"} 1\n' +
-        'response_time_sum 150\n' +
-        'response_time_count 1\n';
+      const expectedOutput = '# HELP http_requests Counter metric\n'
+        + '# TYPE http_requests counter\n'
+        + 'http_requests_total 10\n'
+        + '# HELP memory_usage Gauge metric\n'
+        + '# TYPE memory_usage gauge\n'
+        + 'memory_usage 1024\n'
+        + '# HELP response_time Histogram metric\n'
+        + '# TYPE response_time histogram\n'
+        + 'response_time_bucket{le="10"} 0\n'
+        + 'response_time_bucket{le="50"} 0\n'
+        + 'response_time_bucket{le="100"} 0\n'
+        + 'response_time_bucket{le="250"} 1\n'
+        + 'response_time_bucket{le="500"} 1\n'
+        + 'response_time_bucket{le="1000"} 1\n'
+        + 'response_time_bucket{le="2500"} 1\n'
+        + 'response_time_bucket{le="5000"} 1\n'
+        + 'response_time_bucket{le="10000"} 1\n'
+        + 'response_time_bucket{le="+Inf"} 1\n'
+        + 'response_time_sum 150\n'
+        + 'response_time_count 1\n';
 
       expect(output).toBe(expectedOutput);
     });
