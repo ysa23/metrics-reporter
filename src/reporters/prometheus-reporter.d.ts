@@ -17,6 +17,7 @@ export declare class PrometheusReporter implements IReporter {
   report(key: string, value: number, tags?: Tags): void;
   value(key: string, value: number, tags?: Tags): void;
   increment(key: string, value?: number, tags?: Tags): void;
+
   getMetrics(): string;
   close(): void;
 }
