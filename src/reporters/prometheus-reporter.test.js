@@ -28,6 +28,91 @@ describe('PrometheusReporter', () => {
       const output = reporter.getMetrics();
       expect(output).toBe('');
     });
+
+    it('should generate HELP and TYPE headers once per metric name', () => {
+      const reporter = new PrometheusReporter();
+      reporter.increment('http_requests', 1, { method: 'GET' });
+      reporter.increment('http_requests', 2, { method: 'POST' });
+      reporter.increment('http_requests', 1, { method: 'PUT' });
+
+      const output = reporter.getMetrics();
+
+      expect(output).toBe(
+        '# HELP http_requests Counter metric\n'
+        + '# TYPE http_requests counter\n'
+        + 'http_requests_total{method="GET"} 1\n'
+        + 'http_requests_total{method="POST"} 2\n'
+        + 'http_requests_total{method="PUT"} 1\n',
+      );
+    });
+
+    it('should group metrics with same name but different tags together', () => {
+      const reporter = new PrometheusReporter();
+      reporter.increment('requests', 1, { status: '200' });
+      reporter.value('memory', 1024);
+      reporter.increment('requests', 2, { status: '404' });
+
+      const output = reporter.getMetrics();
+
+      expect(output).toBe(
+        '# HELP requests Counter metric\n'
+        + '# TYPE requests counter\n'
+        + 'requests_total{status="200"} 1\n'
+        + 'requests_total{status="404"} 2\n'
+        + '# HELP memory Gauge metric\n'
+        + '# TYPE memory gauge\n'
+        + 'memory 1024\n',
+      );
+    });
+
+    it('should apply prefix to metric names in headers and values', () => {
+      const reporter = new PrometheusReporter({ prefix: 'myapp_' });
+      reporter.increment('requests', 5);
+
+      const output = reporter.getMetrics();
+
+      expect(output).toBe(
+        '# HELP myapp_requests Counter metric\n'
+        + '# TYPE myapp_requests counter\n'
+        + 'myapp_requests_total 5\n',
+      );
+    });
+
+    it('should group metrics by name regardless of insertion order', () => {
+      const reporter = new PrometheusReporter();
+      reporter.increment('a_counter', 1);
+      reporter.value('b_gauge', 100);
+      reporter.increment('a_counter', 2, { tag: 'test' });
+
+      const output = reporter.getMetrics();
+
+      expect(output).toBe(
+        '# HELP a_counter Counter metric\n'
+        + '# TYPE a_counter counter\n'
+        + 'a_counter_total 1\n'
+        + 'a_counter_total{tag="test"} 2\n'
+        + '# HELP b_gauge Gauge metric\n'
+        + '# TYPE b_gauge gauge\n'
+        + 'b_gauge 100\n',
+      );
+    });
+
+    it('should generate headers for each unique metric name across different types', () => {
+      const reporter = new PrometheusReporter();
+      reporter.increment('http_requests', 10);
+      reporter.value('cpu_usage', 75.5);
+
+      const output = reporter.getMetrics();
+
+      expect(output).toBe(
+        '# HELP http_requests Counter metric\n'
+        + '# TYPE http_requests counter\n'
+        + 'http_requests_total 10\n'
+        + '# HELP cpu_usage Gauge metric\n'
+        + '# TYPE cpu_usage gauge\n'
+        + 'cpu_usage 75.5\n',
+      );
+    });
   });
 
   describe('increment', () => {
