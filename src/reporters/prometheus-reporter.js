@@ -11,6 +11,58 @@ function PrometheusReporter(options = {}) {
   const metrics = new Map();
   let warned = false;
 
+  function report(key, value, tags) {
+    updateMetric(key, value, 'histogram', tags);
+  }
+
+  function _value(key, value, tags) {
+    updateMetric(key, value, 'gauge', tags);
+  }
+
+  function increment(key, value = 1, tags) {
+    updateMetric(key, value, 'counter', tags);
+  }
+
+  function getMetrics() {
+    const metricsByName = metrics.entries().reduce((groups, [key, metric]) => {
+      const { name } = parseKey(key);
+      const metricName = prefix + name;
+
+      return {
+        ...groups,
+        [metricName]: [...(groups[metricName] || []), { key, metric }],
+      };
+    }, {});
+
+    const output = Object.entries(metricsByName).flatMap(([metricName, metricEntries]) => {
+      const firstMetric = metricEntries[0].metric;
+
+      const headerLines = [
+        `# HELP ${metricName} ${getHelpText(firstMetric.type)}`,
+        `# TYPE ${metricName} ${firstMetric.type}`,
+      ];
+
+      const valueLines = metricEntries.flatMap(({ key, metric }) => {
+        const { labels } = parseKey(key);
+        return formatMetricValues(metricName, metric, labels);
+      });
+
+      return [...headerLines, ...valueLines];
+    });
+
+    const result = output.join('\n') + (output.length > 0 ? '\n' : '');
+    if (metrics.size > softLimit) {
+      log('info', 'SOFT_LIMIT_EXCEEDED', 'Soft limit exceeded, resetting metrics after scrape', {
+        softLimit,
+        size: metrics.size,
+      });
+      metrics.clear();
+      warned = false;
+    }
+
+    return result;
+  }
+
   function log(level, code, message, params = {}) {
     if (logCallback && typeof logCallback === 'function') {
       logCallback({
@@ -126,54 +178,8 @@ function PrometheusReporter(options = {}) {
     };
   }
 
-  function report(key, value, tags) {
-    updateMetric(key, value, 'histogram', tags);
-  }
-
-  function _value(key, value, tags) {
-    updateMetric(key, value, 'gauge', tags);
-  }
-
-  function increment(key, value = 1, tags) {
-    updateMetric(key, value, 'counter', tags);
-  }
-
-  function getMetrics() {
-    const output = [];
-    const processedMetrics = new Set();
-
-    metrics.forEach((metric, key) => {
-      const { name, labels } = parseKey(key);
-      const metricName = prefix + name;
-
-      // Add HELP and TYPE lines once per metric name
-      if (!processedMetrics.has(metricName)) {
-        output.push(`# HELP ${metricName} ${getHelpText(metric.type)}`);
-        output.push(`# TYPE ${metricName} ${metric.type}`);
-        processedMetrics.add(metricName);
-      }
-
-      // Format the metric value(s)
-      output.push(...formatMetricValues(metricName, metric, labels));
-    });
-
-    const result = output.join('\n') + (output.length > 0 ? '\n' : '');
-
-    // SOFT LIMIT: Reset after scrape if over threshold
-    if (metrics.size > softLimit) {
-      log('info', 'SOFT_LIMIT_EXCEEDED', 'Soft limit exceeded, resetting metrics after scrape', {
-        softLimit,
-        size: metrics.size,
-      });
-      metrics.clear();
-      warned = false;
-    }
-
-    return result;
-  }
-
   function parseKey(metricKey) {
-    const match = metricKey.match(/^([^{]+)(\{.*\})?$/);
+    const match = metricKey.match(/^([^{]+)(\{.*})?$/);
     if (!match) {
       return { name: metricKey, labels: '' };
     }
@@ -193,10 +199,9 @@ function PrometheusReporter(options = {}) {
     }
 
     if (metric.type === 'histogram') {
-      const bucketValues = [];
-      metric.buckets.forEach((count, bucket) => {
+      const bucketValues = metric.buckets.entries().map(([bucket, count]) => {
         const bucketLabel = labels ? labels.replace('}', `,le="${bucket}"}`) : `{le="${bucket}"}`;
-        bucketValues.push(`${metricName}_bucket${bucketLabel} ${count}`);
+        return `${metricName}_bucket${bucketLabel} ${count}`;
       });
 
       const infLabel = labels ? labels.replace('}', ',le="+Inf"}') : '{le="+Inf"}';
