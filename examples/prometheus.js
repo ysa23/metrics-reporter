@@ -24,10 +24,17 @@ function generateMetrics() {
   // Counter: HTTP requests
   metrics.space('http_requests', { method: 'GET', status: '200' }).increment();
   metrics.space('http_requests', { method: 'POST', status: '201' }).increment(2);
+  
   // Gauge: Active connections
   metrics.space('active_connections').value(Math.floor(Math.random() * 50) + 10);
-  // Histogram: Response time
-  metrics.space('response_time').report(Math.random() * 100 + 50);
+  
+  // Histogram: Response time (using meter with a dummy function)
+  const responseTime = Math.random() * 100 + 50;
+  const timingFunction = metrics.space('response_time').meter(() => {
+    // Simulate work that takes the desired time
+  });
+  // We'll simulate the timing by directly calling the reporter
+  prometheusReporter.report('response_time', responseTime);
 }
 
 // Generate initial metrics
