@@ -25,6 +25,7 @@
     "tsc:watch": "tsc -w",
     "example:graphite": "node ./examples/graphite.js",
     "example:datadog": "node ./examples/datadog.js",
+    "example:prometheus": "node ./examples/prometheus.js",
     "docker:datadog:up": "cd ./docker && docker-compose -f docker-compose-datadog.yml up -d",
     "docker:datadog:down": "cd ./docker && docker-compose -f docker-compose-datadog.yml down",
     "docker:graphite:up": "cd ./docker && docker-compose -f docker-compose-graphite.yml up -d",
