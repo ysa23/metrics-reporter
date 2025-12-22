@@ -24,6 +24,10 @@ function PrometheusReporter(options = {}) {
   }
 
   function getMetrics() {
+    if (metrics.size === 0) {
+      return '';
+    }
+
     const metricsByName = metrics.entries().reduce((groups, [key, metric]) => {
       const { name } = parseKey(key);
       const metricName = prefix + name;
