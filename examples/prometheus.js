@@ -70,7 +70,6 @@ const server = http.createServer((req, res) => {
   if (req.url === '/metrics') {
     res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4' });
     res.end(prometheusReporter.getMetrics());
-    console.log('📊 Metrics scraped');
     return;
   }
 

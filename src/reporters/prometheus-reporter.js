@@ -67,8 +67,8 @@ function PrometheusReporter(options = {}) {
     }
 
     const existing = metrics.get(metricKey) || createMetric(type);
-    updateMetricValue(existing, value, type);
-    metrics.set(metricKey, existing);
+    const updated = updateMetricValue(existing, value, type);
+    metrics.set(metricKey, updated);
   }
 
   function createMetric(type) {
@@ -90,23 +90,40 @@ function PrometheusReporter(options = {}) {
   }
 
   function updateMetricValue(metric, value, type) {
-    switch (type) {
-      case 'counter':
-        metric.value += value;
-        break;
-      case 'gauge':
-        metric.value = value;
-        break;
-      case 'histogram':
-        metric.sum += value;
-        metric.count += 1;
-        buckets.forEach(bucket => {
-          if (value <= bucket) {
-            metric.buckets.set(bucket, metric.buckets.get(bucket) + 1);
-          }
-        });
-        break;
+    if (type === 'counter') {
+      return {
+        ...metric,
+        value: metric.value + value,
+      };
     }
+
+    if (type === 'gauge') {
+      return {
+        ...metric,
+        value,
+      };
+    }
+
+    if (type === 'histogram') {
+      const newBuckets = new Map(metric.buckets);
+      buckets.forEach(bucket => {
+        if (value <= bucket) {
+          newBuckets.set(bucket, newBuckets.get(bucket) + 1);
+        }
+      });
+
+      return {
+        ...metric,
+        sum: metric.sum + value,
+        count: metric.count + 1,
+        buckets: newBuckets,
+      };
+    }
+
+    return {
+      ...metric,
+      value,
+    };
   }
 
   function report(key, value, tags) {
@@ -167,31 +184,31 @@ function PrometheusReporter(options = {}) {
   }
 
   function formatMetricValues(metricName, metric, labels) {
-    const values = [];
-
-    switch (metric.type) {
-      case 'counter':
-        values.push(`${metricName}_total${labels} ${metric.value}`);
-        break;
-      case 'gauge':
-        values.push(`${metricName}${labels} ${metric.value}`);
-        break;
-      case 'histogram':
-        // Output bucket values
-        metric.buckets.forEach((count, bucket) => {
-          const bucketLabel = labels ? labels.replace('}', `,le="${bucket}"}`) : `{le="${bucket}"}`;
-          values.push(`${metricName}_bucket${bucketLabel} ${count}`);
-        });
-        // Add +Inf bucket
-        const infLabel = labels ? labels.replace('}', ',le="+Inf"}') : '{le="+Inf"}';
-        values.push(`${metricName}_bucket${infLabel} ${metric.count}`);
-        // Add sum and count
-        values.push(`${metricName}_sum${labels} ${metric.sum}`);
-        values.push(`${metricName}_count${labels} ${metric.count}`);
-        break;
+    if (metric.type === 'counter') {
+      return [`${metricName}_total${labels} ${metric.value}`];
     }
 
-    return values;
+    if (metric.type === 'gauge') {
+      return [`${metricName}${labels} ${metric.value}`];
+    }
+
+    if (metric.type === 'histogram') {
+      const bucketValues = [];
+      metric.buckets.forEach((count, bucket) => {
+        const bucketLabel = labels ? labels.replace('}', `,le="${bucket}"}`) : `{le="${bucket}"}`;
+        bucketValues.push(`${metricName}_bucket${bucketLabel} ${count}`);
+      });
+
+      const infLabel = labels ? labels.replace('}', ',le="+Inf"}') : '{le="+Inf"}';
+      return [
+        ...bucketValues,
+        `${metricName}_bucket${infLabel} ${metric.count}`,
+        `${metricName}_sum${labels} ${metric.sum}`,
+        `${metricName}_count${labels} ${metric.count}`,
+      ];
+    }
+
+    return [];
   }
 
   function getHelpText(type) {
