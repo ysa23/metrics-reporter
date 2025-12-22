@@ -288,6 +288,9 @@ const softLimit = 5000;                 // Optional - Default `5000` - Reset met
 const hardLimit = 10000;                // Optional - Default `10000` - Force reset to prevent OOM
 const warnAt = 4000;                    // Optional - Default `4000` - Log warning when approaching soft limit
 const buckets = [10, 50, 100, 250];     // Optional - Custom histogram buckets (ms)
+const logCallback = (logEvent) => {     // Optional - function to handle log events
+  console.log(`[${logEvent.level.toUpperCase()}] ${logEvent.message}`, logEvent.params);
+};
 
 const prometheusReporter = new PrometheusReporter({
   prefix,
@@ -295,6 +298,7 @@ const prometheusReporter = new PrometheusReporter({
   hardLimit,
   warnAt,
   buckets,
+  logCallback,
 });
 
 const metrics = new Metrics({ reporters: [prometheusReporter] });
@@ -333,15 +337,37 @@ Configuration should be according to your use-case, use these as guidelines to a
 - **Microservices**: Lower limits (soft: 1000, hard: 2000)
 - **Development**: Very low limits for testing (soft: 100, hard: 200)
 
-##### Logs
-When thresholds exceeds the specified limit a log will be printed to console with `[PROMETHEUS REPORTER]` prefix.
- 
-We highly recommend to add a monitor for these logs, as passing the thresholds might cause loss of metric data.
+##### Log Events
+The PrometheusReporter provides structured logging through an optional `logCallback` function. This allows you to handle log events programmatically instead of relying on console output.
 
-###### Log messages:
-* Soft limit reset (info): `[PROMETHEUS REPORTER]: Soft limit exceeded. Buffer will reset after scrape`
-* Soft limit threshold (warning): `[PROMETHEUS REPORTER]: Approaching soft limit`
-* Hard limit threshold (error): `[PROMETHEUS REPORTER]: Hard limit reached, forcing metrics reset`
+```js
+const prometheusReporter = new PrometheusReporter({
+  logCallback: (logEvent) => {
+    // Handle log events with your preferred logging library
+    logger.log(logEvent.level, logEvent.message, {
+      code: logEvent.code,
+      params: logEvent.params,
+      reporter: logEvent.reporter,
+      timestamp: logEvent.timestamp
+    });
+  }
+});
+```
+
+**Log Event Structure:**
+- `level`: 'error' | 'warn' | 'info' | 'debug'
+- `code`: Event code for programmatic handling
+- `message`: Human-readable message
+- `params`: Additional parameters relevant to the event
+- `timestamp`: Unix timestamp in milliseconds
+- `reporter`: Always 'PrometheusReporter'
+
+**Event Codes:**
+- `APPROACHING_SOFT_LIMIT`: Warning when approaching the soft limit threshold
+- `SOFT_LIMIT_EXCEEDED`: Info when soft limit exceeded during getMetrics()
+- `HARD_LIMIT_REACHED`: Error when hard limit forces immediate reset
+
+We recommend monitoring these events, as threshold violations can cause metric data loss.
 
 ### Building new reporters
 Metrics support creating new reports according to an application needs.

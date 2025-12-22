@@ -34,7 +34,7 @@ describe('PrometheusReporter', () => {
     it('should track single counter metric', () => {
       const reporter = new PrometheusReporter();
       reporter.increment('test_counter', 1);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP test_counter Counter metric\n' +
@@ -47,7 +47,7 @@ describe('PrometheusReporter', () => {
       const reporter = new PrometheusReporter();
       reporter.increment('test_counter', 5);
       reporter.increment('test_counter', 3);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP test_counter Counter metric\n' +
@@ -59,7 +59,7 @@ describe('PrometheusReporter', () => {
     it('should handle tags correctly with sorted labels', () => {
       const reporter = new PrometheusReporter();
       reporter.increment('test_counter', 1, { status: '200', method: 'GET' });
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP test_counter Counter metric\n' +
@@ -72,7 +72,7 @@ describe('PrometheusReporter', () => {
       const reporter = new PrometheusReporter();
       reporter.increment('requests', 1, { method: 'GET' });
       reporter.increment('requests', 2, { method: 'POST' });
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP requests Counter metric\n' +
@@ -85,7 +85,7 @@ describe('PrometheusReporter', () => {
     it('should handle increment with default value of 1', () => {
       const reporter = new PrometheusReporter();
       reporter.increment('test_counter');
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP test_counter Counter metric\n' +
@@ -93,13 +93,35 @@ describe('PrometheusReporter', () => {
         'test_counter_total 1\n'
       );
     });
+
+    it('should call logCallback when warning threshold reached', () => {
+      const logCallback = jest.fn();
+      const reporter = new PrometheusReporter({ warnAt: 2, softLimit: 4, logCallback });
+      reporter.increment('metric1', 1);
+      reporter.increment('metric2', 2);
+      reporter.increment('metric3', 3);
+
+      expect(logCallback).toHaveBeenCalledTimes(1);
+      expect(logCallback).toHaveBeenCalledWith({
+        level: 'warn',
+        code: 'APPROACHING_SOFT_LIMIT',
+        message: 'Approaching soft limit',
+        params: {
+          softLimit: 4,
+          warnAt: 2,
+          size: 2,
+        },
+        timestamp: expect.any(Number),
+        reporter: 'PrometheusReporter',
+      });
+    });
   });
 
   describe('value (gauge)', () => {
     it('should track gauge metrics', () => {
       const reporter = new PrometheusReporter();
       reporter.value('memory_usage', 1024);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP memory_usage Gauge metric\n' +
@@ -112,7 +134,7 @@ describe('PrometheusReporter', () => {
       const reporter = new PrometheusReporter();
       reporter.value('memory_usage', 1024);
       reporter.value('memory_usage', 2048);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP memory_usage Gauge metric\n' +
@@ -124,7 +146,7 @@ describe('PrometheusReporter', () => {
     it('should handle gauge with tags', () => {
       const reporter = new PrometheusReporter();
       reporter.value('temperature', 23.5, { location: 'server_room' });
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP temperature Gauge metric\n' +
@@ -138,7 +160,7 @@ describe('PrometheusReporter', () => {
     it('should track histogram metrics with default buckets', () => {
       const reporter = new PrometheusReporter();
       reporter.report('response_time', 150);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP response_time Histogram metric\n' +
@@ -162,7 +184,7 @@ describe('PrometheusReporter', () => {
       const reporter = new PrometheusReporter();
       reporter.report('response_time', 50);  // Goes in 50, 100, etc buckets
       reporter.report('response_time', 150); // Goes in 250, 500, etc buckets
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP response_time Histogram metric\n' +
@@ -187,7 +209,7 @@ describe('PrometheusReporter', () => {
         buckets: [1, 5, 10]
       });
       reporter.report('custom_metric', 3);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP custom_metric Histogram metric\n' +
@@ -205,15 +227,15 @@ describe('PrometheusReporter', () => {
   describe('soft limit behavior', () => {
     it('should reset metrics after scrape when soft limit exceeded', () => {
       const reporter = new PrometheusReporter({ softLimit: 2 });
-      
+
       // Add metrics beyond soft limit
       reporter.increment('metric1', 1);
       reporter.increment('metric2', 1);
       reporter.increment('metric3', 1);
-      
+
       // First scrape should return all metrics
       const output1 = reporter.getMetrics();
-      const expectedOutput1 = 
+      const expectedOutput1 =
         '# HELP metric1 Counter metric\n' +
         '# TYPE metric1 counter\n' +
         'metric1_total 1\n' +
@@ -223,9 +245,9 @@ describe('PrometheusReporter', () => {
         '# HELP metric3 Counter metric\n' +
         '# TYPE metric3 counter\n' +
         'metric3_total 1\n';
-      
+
       expect(output1).toBe(expectedOutput1);
-      
+
       // Second scrape should be empty (metrics were reset)
       const output2 = reporter.getMetrics();
       expect(output2).toBe('');
@@ -233,38 +255,62 @@ describe('PrometheusReporter', () => {
 
     it('should not reset metrics when under soft limit', () => {
       const reporter = new PrometheusReporter({ softLimit: 5 });
-      
+
       reporter.increment('metric1', 1);
       reporter.increment('metric2', 1);
-      
+
       const output1 = reporter.getMetrics();
       const output2 = reporter.getMetrics();
-      
+
       // Should be the same both times
-      const expectedOutput = 
+      const expectedOutput =
         '# HELP metric1 Counter metric\n' +
         '# TYPE metric1 counter\n' +
         'metric1_total 1\n' +
         '# HELP metric2 Counter metric\n' +
         '# TYPE metric2 counter\n' +
         'metric2_total 1\n';
-      
+
       expect(output1).toBe(expectedOutput);
       expect(output2).toBe(expectedOutput);
+    });
+
+    it('should call logCallback when soft limit exceeded during getMetrics', () => {
+      const logCallback = jest.fn();
+      const reporter = new PrometheusReporter({ softLimit: 2, logCallback });
+
+      reporter.increment('metric1', 1);
+      reporter.increment('metric2', 1);
+      reporter.increment('metric3', 1);
+
+      reporter.getMetrics();
+
+      expect(logCallback).toHaveBeenCalledTimes(1);
+      expect(logCallback).toHaveBeenCalledWith({
+        level: 'info',
+        code: 'SOFT_LIMIT_EXCEEDED',
+        message: 'Soft limit exceeded, resetting metrics after scrape',
+        params: {
+          softLimit: 2,
+          size: 3,
+        },
+        timestamp: expect.any(Number),
+        reporter: 'PrometheusReporter',
+      });
     });
   });
 
   describe('hard limit behavior', () => {
     it('should force reset when hard limit exceeded during metric update', () => {
       const reporter = new PrometheusReporter({ hardLimit: 2 });
-      
+
       // Add metrics up to hard limit
       reporter.increment('metric1', 1);
       reporter.increment('metric2', 1);
-      
+
       // Adding one more should trigger hard reset
       reporter.increment('metric3', 1);
-      
+
       // Should only have the last metric
       const output = reporter.getMetrics();
       expect(output).toBe(
@@ -276,14 +322,14 @@ describe('PrometheusReporter', () => {
 
     it('should not trigger hard limit for existing metrics', () => {
       const reporter = new PrometheusReporter({ hardLimit: 2 });
-      
+
       // Add metrics up to hard limit
       reporter.increment('metric1', 1);
       reporter.increment('metric2', 1);
-      
+
       // Updating existing metric should not trigger reset
       reporter.increment('metric1', 5);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP metric1 Counter metric\n' +
@@ -294,13 +340,36 @@ describe('PrometheusReporter', () => {
         'metric2_total 1\n'
       );
     });
+
+    it('should call logCallback when hard limit exceeded', () => {
+      const logCallback = jest.fn();
+      const reporter = new PrometheusReporter({ hardLimit: 2, logCallback });
+
+      reporter.increment('metric1', 1);
+      reporter.increment('metric2', 1);
+      reporter.increment('metric3', 1);
+
+      expect(logCallback).toHaveBeenCalledTimes(1);
+      expect(logCallback).toHaveBeenCalledWith({
+        level: 'error',
+        code: 'HARD_LIMIT_REACHED',
+        message: 'Hard limit reached, forcing metrics reset',
+        params: {
+          hardLimit: 2,
+          size: 2,
+          attemptedKey: 'metric3',
+        },
+        timestamp: expect.any(Number),
+        reporter: 'PrometheusReporter',
+      });
+    });
   });
 
   describe('prefix', () => {
     it('should add prefix to metric names', () => {
       const reporter = new PrometheusReporter({ prefix: 'myapp_' });
       reporter.increment('requests', 1);
-      
+
       const output = reporter.getMetrics();
       expect(output).toBe(
         '# HELP myapp_requests Counter metric\n' +
@@ -316,9 +385,9 @@ describe('PrometheusReporter', () => {
       reporter.increment('http_requests', 10);
       reporter.value('memory_usage', 1024);
       reporter.report('response_time', 150);
-      
+
       const output = reporter.getMetrics();
-      const expectedOutput = 
+      const expectedOutput =
         '# HELP http_requests Counter metric\n' +
         '# TYPE http_requests counter\n' +
         'http_requests_total 10\n' +
@@ -339,7 +408,7 @@ describe('PrometheusReporter', () => {
         'response_time_bucket{le="+Inf"} 1\n' +
         'response_time_sum 150\n' +
         'response_time_count 1\n';
-      
+
       expect(output).toBe(expectedOutput);
     });
   });

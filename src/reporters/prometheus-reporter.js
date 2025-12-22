@@ -5,10 +5,24 @@ function PrometheusReporter(options = {}) {
     hardLimit = 10000,
     warnAt = 4000,
     buckets = [10, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
+    logCallback,
   } = options;
 
   const metrics = new Map();
   let warned = false;
+
+  function log(level, code, message, params = {}) {
+    if (logCallback && typeof logCallback === 'function') {
+      logCallback({
+        level,
+        code,
+        message,
+        params,
+        timestamp: Date.now(),
+        reporter: 'PrometheusReporter',
+      });
+    }
+  }
 
   function formatKey(key, tags) {
     if (!tags || Object.keys(tags).length === 0) {
@@ -33,14 +47,22 @@ function PrometheusReporter(options = {}) {
 
     // HARD LIMIT: Emergency reset to prevent OOM
     if (metrics.size >= hardLimit && !metrics.has(metricKey)) {
-      console.error('[PROMETHEUS REPORTER]: Hard limit reached, forcing metrics reset', { hardLimit });
+      log('error', 'HARD_LIMIT_REACHED', 'Hard limit reached, forcing metrics reset', {
+        hardLimit,
+        size: metrics.size,
+        attemptedKey: metricKey,
+      });
       metrics.clear();
       warned = false;
     }
 
     // Warning threshold
     if (!warned && metrics.size >= warnAt) {
-      console.warn('[PROMETHEUS REPORTER]: Approaching soft limit', { softLimit, size: metrics.size });
+      log('warn', 'APPROACHING_SOFT_LIMIT', 'Approaching soft limit', {
+        softLimit,
+        warnAt,
+        size: metrics.size,
+      });
       warned = true;
     }
 
@@ -122,7 +144,10 @@ function PrometheusReporter(options = {}) {
 
     // SOFT LIMIT: Reset after scrape if over threshold
     if (metrics.size > softLimit) {
-      console.info('[PROMETHEUS REPORTER]: Soft limit exceeded. Buffer will reset after scrape', { softLimit, size: metrics.size });
+      log('info', 'SOFT_LIMIT_EXCEEDED', 'Soft limit exceeded, resetting metrics after scrape', {
+        softLimit,
+        size: metrics.size,
+      });
       metrics.clear();
       warned = false;
     }
