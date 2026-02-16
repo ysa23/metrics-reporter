@@ -11,6 +11,7 @@ Metrics is a time series reporting framework for aggregators and metrics collect
 * Built in [reporters](#Reporters):
   * [Graphite (statsd)](#Graphite)
   * [DataDog](#DataDog)
+  * [Prometheus (experimental)](#prometheus-experimental)
   * [String](#String)
   * [Console](#Console)
   * [InMemory (for testing)](#InMemory)
@@ -29,6 +30,7 @@ Metrics is a time series reporting framework for aggregators and metrics collect
      * [Reporters](#reporters)
         * [Graphite](#Graphite)
         * [DataDog](#DataDog)
+        * [Prometheus (experimental)](#prometheus-experimental)
         * [String](#String)
         * [Console](#Console)
         * [InMemory](#InMemory)
@@ -274,6 +276,98 @@ const metrics = new Metrics({ reporters: [memoryReporter], errback: error => { /
 ```
 When a metric is reported, an object with `key`, `value` and `tags` properties is pushed to the array.<br/>
 Then, the array can be used in order to validate the report.
+
+#### Prometheus (experimental)
+PrometheusReporter is an experimental reporter that generates metrics in the [Prometheus text exposition format](https://prometheus.io/docs/instrumenting/exposition_formats/) without any external dependencies:
+```js
+const { Metrics, PrometheusReporter } = require('metrics-reporter');
+const express = require('express');
+
+const prefix = 'myapp_';                // Optional - prefix for all metric names
+const softLimit = 5000;                 // Optional - Default `5000` - Reset metrics after scrape when exceeded
+const hardLimit = 10000;                // Optional - Default `10000` - Force reset to prevent OOM
+const warnAt = 4000;                    // Optional - Default `4000` - Log warning when approaching soft limit
+const buckets = [10, 50, 100, 250];     // Optional - Custom histogram buckets (ms)
+const logCallback = (logEvent) => {     // Optional - function to handle log events
+  console.log(`[${logEvent.level.toUpperCase()}] ${logEvent.message}`, logEvent.params);
+};
+
+const prometheusReporter = new PrometheusReporter({
+  prefix,
+  softLimit,
+  hardLimit,
+  warnAt,
+  buckets,
+  logCallback,
+});
+
+const metrics = new Metrics({ reporters: [prometheusReporter] });
+
+// Expose metrics endpoint for Prometheus to scrape
+const app = express();
+app.get('/metrics', (req, res) => {
+  res
+    .type('text/plain')
+    .send(prometheusReporter.getMetrics());
+});
+
+app.listen(3000);
+```
+
+##### Design Principles
+The PrometheusReporter implements a **double-threshold strategy** to prevent memory issues common with high-cardinality metrics:
+
+1. **Soft Limit** (default 5000): When the number of unique metrics exceeds this limit, they are reset **after** the next scrape, ensuring Prometheus receives the data before clearing.
+
+2. **Hard Limit** (default 10000): An emergency threshold that immediately resets all metrics to prevent out-of-memory errors, even if Prometheus hasn't scraped yet.
+
+3. **Warning Threshold** (default 4000): Logs a warning when approaching the soft limit, helping identify cardinality issues before they become critical.
+
+This approach provides **memory safety** while maintaining **data integrity**, unlike traditional Prometheus clients that can suffer from unbounded memory growth.
+
+##### Metric Type Mapping
+- `increment()` → Counter (with `_total` suffix)
+- `value()` → Gauge
+- `report()` → Histogram (with buckets, sum, and count)
+
+##### Configuration Recommendations
+Configuration should be according to your use-case, use these as guidelines to an initial configuration and tweak as needed:
+- **Low traffic**: Use defaults (soft: 5000, hard: 10000)
+- **High traffic**: Increase limits (soft: 20000, hard: 50000)
+- **Microservices**: Lower limits (soft: 1000, hard: 2000)
+- **Development**: Very low limits for testing (soft: 100, hard: 200)
+
+##### Log Events
+The PrometheusReporter provides structured logging through an optional `logCallback` function. This allows you to handle log events programmatically instead of relying on console output.
+
+```js
+const prometheusReporter = new PrometheusReporter({
+  logCallback: (logEvent) => {
+    // Handle log events with your preferred logging library
+    logger.log(logEvent.level, logEvent.message, {
+      code: logEvent.code,
+      params: logEvent.params,
+      reporter: logEvent.reporter,
+      timestamp: logEvent.timestamp
+    });
+  }
+});
+```
+
+**Log Event Structure:**
+- `level`: 'error' | 'warn' | 'info' | 'debug'
+- `code`: Event code for programmatic handling
+- `message`: Human-readable message
+- `params`: Additional parameters relevant to the event
+- `timestamp`: Unix timestamp in milliseconds
+- `reporter`: Always 'PrometheusReporter'
+
+**Event Codes:**
+- `APPROACHING_SOFT_LIMIT`: Warning when approaching the soft limit threshold
+- `SOFT_LIMIT_EXCEEDED`: Info when soft limit exceeded during getMetrics()
+- `HARD_LIMIT_REACHED`: Error when hard limit forces immediate reset
+
+We recommend monitoring these events, as threshold violations can cause metric data loss.
 
 ### Building new reporters
 Metrics support creating new reports according to an application needs.

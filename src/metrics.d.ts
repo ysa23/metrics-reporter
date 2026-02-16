@@ -4,7 +4,7 @@ import {IReporter} from "./types/reporter";
 
 declare interface MetricsOptions {
   reporters: IReporter[];
-  tags: Tags;
+  tags?: Tags;
   errback?: ErrorCallback;
 }
 
